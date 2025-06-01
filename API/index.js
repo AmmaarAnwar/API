@@ -19,11 +19,11 @@ const createTable = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS contacts (
       id SERIAL PRIMARY KEY,
-      name TEXT,
-      email TEXT,
-      subject TEXT,
-      message TEXT,
-      submitted_at TIMESTAMPTZ DEFAULT NOW()
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
   `);
 };
