@@ -3,17 +3,19 @@ import cors from "cors";
 import fs from "fs/promises"; 
 import pkg from "pg";
 const { Pool } = pkg;
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 const PORT = process.env.PORT || 8080;
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }, // needed on Railway
 });
-
-app.use(cors());
-app.use(express.json());
 
 const createTable = async () => {
   await pool.query(`
