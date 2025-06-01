@@ -1,51 +1,55 @@
 import express from "express";
 import cors from "cors";
 import fs from "fs/promises"; 
+import pkg from "pg";
+const { Pool } = pkg;
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }, // needed on Railway
+});
+
 app.use(cors());
 app.use(express.json());
 
-const CONTACTS_FILE = "./contacts.json";
+const createTable = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS contacts (
+      id SERIAL PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      subject TEXT,
+      message TEXT,
+      submitted_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+};
+createTable();
+
+
 
 app.post("/api/contact", async (req, res) => {
+  const { name, email, subject, message } = req.body;
   try {
-    const { name, email, subject, message } = req.body;
-
-
-    let contacts = [];
-    try {
-      const data = await fs.readFile(CONTACTS_FILE, "utf8");
-      contacts = JSON.parse(data);
-    } catch (err) {
-
-      contacts = [];
-    }
-
-    contacts.push({
-      name,
-      email,
-      subject,
-      message,
-      receivedAt: new Date().toISOString(),
-    });
-
-
-    await fs.writeFile(
-      CONTACTS_FILE,
-      JSON.stringify(contacts, null, 2),
-      "utf8"
+    await pool.query(
+      "INSERT INTO contacts (name, email, subject, message) VALUES ($1, $2, $3, $4)",
+      [name, email, subject, message]
     );
-
-    res.status(200).json({ message: "Message saved successfully!" });
-  } catch (error) {
-    console.error("Error saving contact:", error);
-    res.status(500).json({ error: "Failed to save message" });
+    res.status(200).json({ message: "Contact saved to DB ✅" });
+  } catch (err) {
+    console.error("DB Error:", err);
+    res.status(500).json({ error: "Failed to save contact" });
   }
 });
-
+app.get("/api/contacts", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM contacts ORDER BY submitted_at DESC"
+  );
+  res.json(result.rows);
+});
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
