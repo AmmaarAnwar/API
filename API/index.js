@@ -3,6 +3,7 @@ import cors from "cors";
 import fs from "fs/promises"; 
 import pkg from "pg";
 const { Pool } = pkg;
+import "dotenv/config";
 import dotenv from "dotenv";
 dotenv.config();
 
