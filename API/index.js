@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import fs from "fs/promises"; 
+import fs from "fs/promises";
 import pkg from "pg";
 const { Pool } = pkg;
 import "dotenv/config";
@@ -12,10 +12,9 @@ app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 8080;
 
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // needed on Railway
+  ssl: { rejectUnauthorized: false }, 
 });
 
 const createTable = async () => {
@@ -32,8 +31,6 @@ const createTable = async () => {
 };
 createTable();
 
-
-
 app.post("/api/contact", async (req, res) => {
   const { name, email, subject, message } = req.body;
   try {
@@ -47,12 +44,27 @@ app.post("/api/contact", async (req, res) => {
     res.status(500).json({ error: "Failed to save contact" });
   }
 });
+
 app.get("/api/contacts", async (req, res) => {
-  const result = await pool.query(
-    "SELECT * FROM contacts ORDER BY submitted_at DESC"
-  );
-  res.json(result.rows);
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        name,
+        email,
+        subject,
+        message,
+        TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at
+      FROM contacts
+      ORDER BY created_at DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("DB Error:", err);
+    res.status(500).json({ error: "Failed to fetch contacts" });
+  }
 });
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
